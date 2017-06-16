@@ -6,11 +6,11 @@ import (
 )
 
 type Server struct {
-	processes []*Process
+	processes []Process
 }
 
 func (s *Server) Use(route route) {
-	s.processes = append(s.processes, &UseProcess{route})
+	s.processes = append(s.processes, &PlainProcess{route})
 }
 
 func (s *Server) Filter(path string, route route) {
@@ -43,10 +43,7 @@ func (s *Server) Options(path string, route route) {
 
 func (s *Server) Start(port string) {
 
-	h := new(Handler)
-	h.processes = s.processes
-
-	err := http.ListenAndServe(port, h)
+	err := http.ListenAndServe(port, &Handler{processes: s.processes})
 
 	if err != nil {
 		log.Fatalf("error: %s", err)
