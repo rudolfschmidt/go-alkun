@@ -14,7 +14,7 @@ type Process interface {
 	execute(w http.ResponseWriter, r *http.Request) bool
 }
 
-type UseProcess struct {
+type PlainProcess struct {
 	route route
 }
 
@@ -29,7 +29,7 @@ type MethodPathProcess struct {
 	route  route
 }
 
-func (c *UseProcess) execute(w http.ResponseWriter, r *http.Request) bool {
+func (p *PlainProcess) execute(w http.ResponseWriter, r *http.Request) bool {
 
 	req := new(Request)
 	req.HttpRequest = r
@@ -37,49 +37,49 @@ func (c *UseProcess) execute(w http.ResponseWriter, r *http.Request) bool {
 	res := new(Response)
 	res.Writer = w
 
-	c.route(req, res)
+	p.route(req, res)
 
 	return res.next
 
 }
 
-func (c *PathProcess) execute(w http.ResponseWriter, r *http.Request) bool {
+func (p *PathProcess) execute(w http.ResponseWriter, r *http.Request) bool {
 
-	if !acceptedPath(r.URL.Path, c.path) {
+	if !acceptedPath(r.URL.Path, p.path) {
 		return true
 	}
 
 	req := new(Request)
 	req.HttpRequest = r
-	req.Path = c.path
+	req.Path = p.path
 
 	res := new(Response)
 	res.Writer = w
 
-	c.route(req, res)
+	p.route(req, res)
 
 	return res.next
 
 }
 
-func (c *MethodPathProcess) execute(w http.ResponseWriter, r *http.Request) bool {
+func (p *MethodPathProcess) execute(w http.ResponseWriter, r *http.Request) bool {
 
-	if !acceptMethod(r.Method, c.method) {
+	if !acceptMethod(r.Method, p.method) {
 		return true
 	}
 
-	if !acceptedPath(r.URL.Path, c.path) {
+	if !acceptedPath(r.URL.Path, p.path) {
 		return true
 	}
 
 	req := new(Request)
 	req.HttpRequest = r
-	req.Path = c.path
+	req.Path = p.path
 
 	res := new(Response)
 	res.Writer = w
 
-	c.route(req, res)
+	p.route(req, res)
 
 	return res.next
 
