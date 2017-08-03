@@ -1,35 +1,42 @@
 package alkun
 
 import (
-	"strings"
 	"net/http"
+	"strings"
 )
 
 const (
-	SLASH = "/"
+	SLASH           = "/"
 	PARAM_DELIMITER = ":"
 )
 
-type Process interface {
-	execute(w http.ResponseWriter, r *http.Request) bool
+type process interface {
 }
 
-type PlainProcess struct {
-	route route
+type default_process interface {
+	execute(w http.ResponseWriter, r *http.Request) (bool, error)
 }
 
-type PathProcess struct {
+type plain_process struct {
+	route default_route
+}
+
+type path_process struct {
 	path  string
-	route route
+	route default_route
 }
 
-type MethodPathProcess struct {
+type method_path_process struct {
 	method string
 	path   string
-	route  route
+	route  default_route
 }
 
-func (p *PlainProcess) execute(w http.ResponseWriter, r *http.Request) bool {
+type error_process struct {
+	route exception_route
+}
+
+func (p *error_process) execute(err interface{}, w http.ResponseWriter, r *http.Request) (bool, error) {
 
 	req := new(Request)
 	req.HttpRequest = r
@@ -37,16 +44,38 @@ func (p *PlainProcess) execute(w http.ResponseWriter, r *http.Request) bool {
 	res := new(Response)
 	res.Writer = w
 
-	p.route(req, res)
+	new_err := p.route(err, req, res)
 
-	return res.next
+	if new_err != nil {
+		return false, new_err
+	}
+
+	return res.next, nil
 
 }
 
-func (p *PathProcess) execute(w http.ResponseWriter, r *http.Request) bool {
+func (p *plain_process) execute(w http.ResponseWriter, r *http.Request) (bool, error) {
+
+	req := new(Request)
+	req.HttpRequest = r
+
+	res := new(Response)
+	res.Writer = w
+
+	err := p.route(req, res)
+
+	if err != nil {
+		return false, err
+	}
+
+	return res.next, nil
+
+}
+
+func (p *path_process) execute(w http.ResponseWriter, r *http.Request) (bool, error) {
 
 	if !acceptedPath(r.URL.Path, p.path) {
-		return true
+		return true, nil
 	}
 
 	req := new(Request)
@@ -56,20 +85,24 @@ func (p *PathProcess) execute(w http.ResponseWriter, r *http.Request) bool {
 	res := new(Response)
 	res.Writer = w
 
-	p.route(req, res)
+	err := p.route(req, res)
 
-	return res.next
+	if err != nil {
+		return false, err
+	}
+
+	return res.next, nil
 
 }
 
-func (p *MethodPathProcess) execute(w http.ResponseWriter, r *http.Request) bool {
+func (p *method_path_process) execute(w http.ResponseWriter, r *http.Request) (bool, error) {
 
 	if !acceptMethod(r.Method, p.method) {
-		return true
+		return true, nil
 	}
 
 	if !acceptedPath(r.URL.Path, p.path) {
-		return true
+		return true, nil
 	}
 
 	req := new(Request)
@@ -79,9 +112,13 @@ func (p *MethodPathProcess) execute(w http.ResponseWriter, r *http.Request) bool
 	res := new(Response)
 	res.Writer = w
 
-	p.route(req, res)
+	err := p.route(req, res)
 
-	return res.next
+	if err != nil {
+		return false, err
+	}
+
+	return res.next, nil
 
 }
 

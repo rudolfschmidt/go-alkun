@@ -5,7 +5,8 @@ import (
 	"strings"
 )
 
-type route func(*Request, *Response)
+type default_route func(*Request, *Response) error
+type exception_route func(interface{}, *Request, *Response) error
 type parameters map[string]string
 
 type Request struct {
